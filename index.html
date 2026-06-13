@@ -6,24 +6,6 @@
   <title>Metrônomo Avançado para Bateria</title>
   <style>
     :root {
-      color-scheme: light dark;
-      --bg: #f4f7f5;
-      --panel: #ffffff;
-      --panel-soft: #eef3f0;
-      --ink: #17211c;
-      --muted: #637169;
-      --line: #cbd8d0;
-      --accent: #0f8f72;
-      --accent-2: #d44f2f;
-      --accent-3: #245fc7;
-      --warn: #d68a00;
-      --shadow: 0 18px 45px rgba(20, 35, 28, .10);
-      --radius: 8px;
-      --flash: rgba(15, 143, 114, .22);
-      --grid: #dfe8e2;
-    }
-
-    [data-theme="dark"] {
       color-scheme: dark;
       --bg: #101412;
       --panel: #171d1a;
@@ -36,6 +18,7 @@
       --accent-3: #7aa7ff;
       --warn: #ffc15a;
       --shadow: 0 18px 45px rgba(0, 0, 0, .28);
+      --radius: 8px;
       --flash: rgba(53, 202, 164, .18);
       --grid: #2a342e;
     }
@@ -101,47 +84,9 @@
     }
 
     .app {
-      width: min(1440px, 100%);
+      width: min(760px, 100%);
       margin: 0 auto;
       padding: 20px;
-    }
-
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 18px;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      min-width: 0;
-    }
-
-    .mark {
-      width: 42px;
-      height: 42px;
-      border-radius: 8px;
-      background:
-        linear-gradient(135deg, var(--accent), transparent 70%),
-        linear-gradient(315deg, var(--accent-2), var(--panel-soft));
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.22);
-    }
-
-    h1 {
-      margin: 0;
-      font-size: clamp(1.3rem, 2vw, 2rem);
-      letter-spacing: 0;
-      line-height: 1.05;
-    }
-
-    .subtitle {
-      margin: 3px 0 0;
-      color: var(--muted);
-      font-size: .9rem;
     }
 
     .layout {
@@ -176,11 +121,30 @@
       letter-spacing: 0;
     }
 
+    .control-grid {
+      display: grid;
+      grid-template-columns: minmax(190px, 260px) 1fr;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .control-fields {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      align-items: end;
+    }
+
+    .control-fields .wide {
+      grid-column: 1 / -1;
+    }
+
     .bpm-display {
       display: grid;
       place-items: center;
-      min-height: 180px;
-      border-radius: var(--radius);
+      width: min(260px, 100%);
+      aspect-ratio: 1;
+      border-radius: 50%;
       background:
         radial-gradient(circle at center, var(--flash), transparent 62%),
         var(--panel-soft);
@@ -197,7 +161,7 @@
     }
 
     .bpm-number {
-      font-size: clamp(4rem, 10vw, 7.5rem);
+      font-size: clamp(4rem, 13vw, 6.8rem);
       font-weight: 850;
       line-height: .9;
       font-variant-numeric: tabular-nums;
@@ -211,15 +175,19 @@
 
     .bpm-controls {
       display: grid;
-      grid-template-columns: 48px 1fr 48px;
       gap: 10px;
       align-items: center;
     }
 
     .transport {
       display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: 1fr;
       gap: 8px;
+    }
+
+    .transport button {
+      min-height: 54px;
+      font-size: 1.02rem;
     }
 
     .primary {
@@ -475,109 +443,61 @@
     }
 
     @media (max-width: 980px) {
-      .layout { grid-template-columns: 1fr; }
-      .status-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .layout, .control-grid { grid-template-columns: 1fr; }
+      .bpm-display { justify-self: start; }
     }
 
     @media (max-width: 620px) {
       .app { padding: 12px; }
-      .topbar { align-items: flex-start; }
-      .transport { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .transport button:first-child { grid-column: span 2; }
-      .mini-grid, .status-grid { grid-template-columns: 1fr; }
-      .bpm-controls { grid-template-columns: 42px 1fr 42px; }
-      h1 { font-size: 1.22rem; }
-      .subtitle { display: none; }
+      .control-fields, .mini-grid { grid-template-columns: 1fr; }
+      .status-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .status { padding: 7px; }
+      .status span { font-size: .58rem; }
+      .status strong { font-size: .78rem; }
     }
   </style>
 </head>
 <body>
   <div class="app">
-    <header class="topbar">
-      <div class="brand">
-        <div class="mark" aria-hidden="true"></div>
-        <div>
-          <h1>Metrônomo Avançado para Bateria</h1>
-          <p class="subtitle">Sequências, subdivisões, viradas e precisão com Web Audio API.</p>
-        </div>
-      </div>
-      <button id="themeToggle" class="ghost" type="button" title="Alternar tema">Tema</button>
-    </header>
-
     <main class="layout">
       <section class="panel panel-pad stack">
-        <div class="section-title">
-          <h2>Controle de Tempo</h2>
-        </div>
-
-        <div id="bpmFlash" class="bpm-display" aria-live="polite">
-          <div>
-            <div id="bpmBig" class="bpm-number">120</div>
-            <div class="bpm-unit">BPM</div>
+        <div class="control-grid">
+          <div id="bpmFlash" class="bpm-display" aria-live="polite">
+            <div>
+              <div id="bpmBig" class="bpm-number">120</div>
+              <div class="bpm-unit">BPM</div>
+            </div>
           </div>
-        </div>
 
-        <div class="bpm-controls">
-          <button id="bpmMinus" type="button" title="Diminuir BPM">−</button>
-          <label>
-            <span class="sr-only">BPM</span>
-            <input id="bpmSlider" type="range" min="30" max="300" step="1" value="120">
-          </label>
-          <button id="bpmPlus" type="button" title="Aumentar BPM">+</button>
-        </div>
-
-        <div class="mini-grid">
-          <label>BPM
-            <input id="bpmInput" type="number" min="30" max="300" step="1" value="120">
-          </label>
-          <label>Volume
-            <input id="volumeInput" type="range" min="0" max="1" step="0.01" value="0.72">
-          </label>
-        </div>
-
-        <div class="mini-grid">
-          <label>Timbre
-            <select id="soundSelect">
-              <option value="electronic">Click suave</option>
-              <option value="woodblock">Woodblock seco</option>
-              <option value="cowbell">Cowbell macio</option>
-            </select>
-          </label>
-          <label>Count-in
-            <select id="countInSelect">
-              <option value="0">Sem contagem</option>
-              <option value="1">1 compasso</option>
-              <option value="2">2 compassos</option>
-            </select>
-          </label>
+          <div class="control-fields">
+            <label>BPM
+              <input id="bpmInput" type="number" min="30" max="300" step="1" value="120">
+            </label>
+            <label>Count-in
+              <select id="countInSelect">
+                <option value="0">0</option>
+                <option value="1">1 compasso</option>
+                <option value="2">2 compassos</option>
+              </select>
+            </label>
+            <label class="wide">
+              <span class="sr-only">BPM</span>
+              <input id="bpmSlider" type="range" min="30" max="300" step="1" value="120">
+            </label>
+            <label class="wide">Timbre
+              <select id="soundSelect">
+                <option value="electronic">Click suave</option>
+                <option value="woodblock">Woodblock seco</option>
+                <option value="cowbell">Cowbell macio</option>
+              </select>
+            </label>
+          </div>
         </div>
 
         <div class="transport">
           <button id="startBtn" class="primary" type="button">Start</button>
-          <button id="pauseBtn" type="button">Pause</button>
-          <button id="stopBtn" class="danger" type="button">Stop</button>
-          <button id="restartBtn" type="button">Reiniciar</button>
-          <button id="tapBtn" class="ghost" type="button">Tap</button>
         </div>
 
-        <div class="toggle-line">
-          <label><input id="loopInfinite" type="checkbox" checked> Loop infinito</label>
-          <span class="small-value" id="cycleReadout">ciclos livres</span>
-        </div>
-
-        <div class="mini-grid">
-          <label>Ciclos totais
-            <input id="totalCycles" type="number" min="1" max="999" step="1" value="4">
-          </label>
-          <label>Fill Practice: últimos tempos
-            <input id="fillBeats" type="number" min="0" max="16" step="1" value="1">
-          </label>
-        </div>
-
-        <p class="hint">Atalho: Espaço alterna Start/Stop. O áudio é agendado em janelas de 100 ms com look-ahead de 25 ms.</p>
-      </section>
-
-      <section class="panel panel-pad stack">
         <div class="section-title">
           <h2>Grade Rítmica</h2>
           <span id="signatureStatus" class="small-value">4/4</span>
@@ -586,6 +506,15 @@
           <div id="cycleProgress" class="progress"></div>
         </div>
         <div id="rhythmGrid" class="rhythm-grid"></div>
+      </section>
+
+      <section class="panel panel-pad">
+        <div class="status-grid">
+          <div class="status"><span>Tempo</span><strong id="beatStatus">1</strong></div>
+          <div class="status"><span>Ciclo</span><strong id="cycleStatus">1</strong></div>
+          <div class="status"><span>Compasso</span><strong id="measureStatus">1 / 5</strong></div>
+          <div class="status"><span>Subdivisão</span><strong id="subdivisionStatus">Semínimas</strong></div>
+        </div>
       </section>
 
       <section class="panel panel-pad stack">
@@ -610,15 +539,6 @@
             </thead>
             <tbody id="sequenceBody"></tbody>
           </table>
-        </div>
-      </section>
-
-      <section class="panel panel-pad">
-        <div class="status-grid">
-          <div class="status"><span>Compasso</span><strong id="measureStatus">1 / 5</strong></div>
-          <div class="status"><span>Tempo</span><strong id="beatStatus">1</strong></div>
-          <div class="status"><span>Subdivisão</span><strong id="subdivisionStatus">Semínimas</strong></div>
-          <div class="status"><span>Ciclo</span><strong id="cycleStatus">1</strong></div>
         </div>
       </section>
     </main>
@@ -835,16 +755,12 @@
         this.isPaused = false;
         this.sequence = [];
         this.bpm = 120;
-        this.loopInfinite = true;
-        this.totalCycles = 4;
         this.countInMeasures = 0;
         this.resetCursor();
       }
 
       setSettings(settings) {
         this.bpm = clampInt(settings.bpm ?? this.bpm, BPM_MIN, BPM_MAX);
-        this.loopInfinite = Boolean(settings.loopInfinite);
-        this.totalCycles = Math.max(1, parseInt(settings.totalCycles || 1, 10));
         this.countInMeasures = Math.max(0, parseInt(settings.countInMeasures || 0, 10));
       }
 
@@ -979,9 +895,6 @@
 
         this.measureIndex = 0;
         this.cycleIndex += 1;
-        if (!this.loopInfinite && this.cycleIndex >= this.totalCycles) {
-          this.stop({ reset: false });
-        }
       }
 
       getBeatDuration(measure) {
@@ -1009,7 +922,6 @@
         this.state = this.loadState();
         this.scheduledEvents = [];
         this.lastVisualPulseKey = "";
-        this.tapTimes = [];
         this.flashUntil = 0;
         this.countOverlayUntil = 0;
         this.cacheElements();
@@ -1030,16 +942,9 @@
           bpmFlash: document.getElementById("bpmFlash"),
           bpmInput: document.getElementById("bpmInput"),
           bpmSlider: document.getElementById("bpmSlider"),
-          bpmMinus: document.getElementById("bpmMinus"),
-          bpmPlus: document.getElementById("bpmPlus"),
-          volumeInput: document.getElementById("volumeInput"),
           soundSelect: document.getElementById("soundSelect"),
           countInSelect: document.getElementById("countInSelect"),
           startBtn: document.getElementById("startBtn"),
-          pauseBtn: document.getElementById("pauseBtn"),
-          stopBtn: document.getElementById("stopBtn"),
-          restartBtn: document.getElementById("restartBtn"),
-          tapBtn: document.getElementById("tapBtn"),
           measureStatus: document.getElementById("measureStatus"),
           beatStatus: document.getElementById("beatStatus"),
           subdivisionStatus: document.getElementById("subdivisionStatus"),
@@ -1049,11 +954,6 @@
           rhythmGrid: document.getElementById("rhythmGrid"),
           sequenceBody: document.getElementById("sequenceBody"),
           addMeasure: document.getElementById("addMeasure"),
-          loopInfinite: document.getElementById("loopInfinite"),
-          totalCycles: document.getElementById("totalCycles"),
-          cycleReadout: document.getElementById("cycleReadout"),
-          fillBeats: document.getElementById("fillBeats"),
-          themeToggle: document.getElementById("themeToggle"),
           countInOverlay: document.getElementById("countInOverlay"),
           countInNumber: document.getElementById("countInNumber")
         };
@@ -1062,14 +962,9 @@
       loadState() {
         const fallback = {
           bpm: 120,
-          volume: 0.72,
           timbre: "electronic",
           sequence: DEFAULT_SEQUENCE,
-          loopInfinite: true,
-          totalCycles: 4,
-          countInMeasures: 0,
-          fillBeats: 1,
-          theme: window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+          countInMeasures: 0
         };
         try {
           const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
@@ -1087,20 +982,13 @@
       saveState() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
           bpm: this.state.bpm,
-          volume: this.state.volume,
           timbre: this.state.timbre,
           sequence: this.state.sequence,
-          loopInfinite: this.state.loopInfinite,
-          totalCycles: this.state.totalCycles,
-          countInMeasures: this.state.countInMeasures,
-          fillBeats: this.state.fillBeats,
-          theme: this.state.theme
+          countInMeasures: this.state.countInMeasures
         }));
       }
 
       applyStateToEngine() {
-        document.documentElement.dataset.theme = this.state.theme;
-        this.audio.setVolume(this.state.volume);
         this.audio.setTimbre(this.state.timbre);
         this.sequencer.setSettings(this.state);
         this.sequencer.setSequence(this.state.sequence);
@@ -1109,13 +997,6 @@
       bindEvents() {
         this.els.bpmInput.addEventListener("input", e => this.setBpm(e.target.value));
         this.els.bpmSlider.addEventListener("input", e => this.setBpm(e.target.value));
-        this.els.bpmMinus.addEventListener("click", () => this.setBpm(this.state.bpm - 1));
-        this.els.bpmPlus.addEventListener("click", () => this.setBpm(this.state.bpm + 1));
-        this.els.volumeInput.addEventListener("input", e => {
-          this.state.volume = clamp(Number(e.target.value), 0, 1);
-          this.audio.setVolume(this.state.volume);
-          this.saveState();
-        });
         this.els.soundSelect.addEventListener("change", e => {
           this.state.timbre = e.target.value;
           this.audio.setTimbre(this.state.timbre);
@@ -1126,34 +1007,8 @@
           this.applyStateToEngine();
           this.saveState();
         });
-        this.els.startBtn.addEventListener("click", () => this.start());
-        this.els.pauseBtn.addEventListener("click", () => this.sequencer.pause());
-        this.els.stopBtn.addEventListener("click", () => this.sequencer.stop());
-        this.els.restartBtn.addEventListener("click", () => this.restart());
-        this.els.tapBtn.addEventListener("click", () => this.tapTempo());
+        this.els.startBtn.addEventListener("click", () => this.toggleTransport());
         this.els.addMeasure.addEventListener("click", () => this.addMeasure());
-        this.els.loopInfinite.addEventListener("change", e => {
-          this.state.loopInfinite = e.target.checked;
-          this.applyStateToEngine();
-          this.renderAdvanced();
-          this.saveState();
-        });
-        this.els.totalCycles.addEventListener("input", e => {
-          this.state.totalCycles = Math.max(1, parseInt(e.target.value || 1, 10));
-          this.applyStateToEngine();
-          this.renderAdvanced();
-          this.saveState();
-        });
-        this.els.fillBeats.addEventListener("input", e => {
-          this.state.fillBeats = Math.max(0, parseInt(e.target.value || 0, 10));
-          this.renderRhythmGrid();
-          this.saveState();
-        });
-        this.els.themeToggle.addEventListener("click", () => {
-          this.state.theme = this.state.theme === "dark" ? "light" : "dark";
-          document.documentElement.dataset.theme = this.state.theme;
-          this.saveState();
-        });
         document.addEventListener("keydown", e => this.handleKeys(e));
       }
 
@@ -1164,26 +1019,19 @@
         this.saveState();
       }
 
-      async start() {
+      async toggleTransport() {
+        if (this.sequencer.isRunning) {
+          this.sequencer.pause();
+          this.updateTransportLabel();
+          return;
+        }
         this.applyStateToEngine();
         await this.sequencer.start();
+        this.updateTransportLabel();
       }
 
-      async restart() {
-        this.scheduledEvents = [];
-        this.applyStateToEngine();
-        await this.sequencer.start({ restart: true });
-      }
-
-      tapTempo() {
-        const now = performance.now();
-        this.tapTimes = this.tapTimes.filter(time => now - time < 2200);
-        this.tapTimes.push(now);
-        if (this.tapTimes.length < 2) return;
-        const gaps = [];
-        for (let i = 1; i < this.tapTimes.length; i++) gaps.push(this.tapTimes[i] - this.tapTimes[i - 1]);
-        const average = gaps.reduce((sum, value) => sum + value, 0) / gaps.length;
-        this.setBpm(Math.round(60000 / average));
+      updateTransportLabel() {
+        this.els.startBtn.textContent = this.sequencer.isRunning ? "Stop" : "Start";
       }
 
       handleKeys(event) {
@@ -1191,8 +1039,7 @@
         if (tag === "input" || tag === "textarea" || tag === "select") return;
         if (event.code === "Space") {
           event.preventDefault();
-          if (this.sequencer.isRunning) this.sequencer.stop();
-          else this.start();
+          this.toggleTransport();
         }
       }
 
@@ -1204,6 +1051,7 @@
 
       handleStopped() {
         this.renderStatus();
+        this.updateTransportLabel();
       }
 
       addMeasure() {
@@ -1253,7 +1101,6 @@
       renderAll() {
         this.renderBpm();
         this.renderControls();
-        this.renderAdvanced();
         this.renderStatus();
         this.renderRhythmGrid();
         this.renderSequenceTable();
@@ -1266,17 +1113,9 @@
       }
 
       renderControls() {
-        this.els.volumeInput.value = this.state.volume;
         this.els.soundSelect.value = this.state.timbre;
         this.els.countInSelect.value = String(this.state.countInMeasures);
-      }
-
-      renderAdvanced() {
-        this.els.loopInfinite.checked = this.state.loopInfinite;
-        this.els.totalCycles.value = this.state.totalCycles;
-        this.els.totalCycles.disabled = this.state.loopInfinite;
-        this.els.fillBeats.value = this.state.fillBeats;
-        this.els.cycleReadout.textContent = this.state.loopInfinite ? "ciclos livres" : `${this.state.totalCycles} ciclo(s)`;
+        this.updateTransportLabel();
       }
 
       renderStatus(event = this.sequencer.getSnapshot().currentEvent) {
@@ -1289,7 +1128,7 @@
         this.els.subdivisionStatus.textContent = SUBDIVISIONS[measure.subdivision].label;
         this.els.signatureStatus.textContent = `${measure.beats}/${measure.denominator}`;
         const cycle = (event?.cycleIndex ?? snap.cycleIndex) + 1;
-        this.els.cycleStatus.textContent = this.state.loopInfinite ? String(cycle) : `${cycle} / ${this.state.totalCycles}`;
+        this.els.cycleStatus.textContent = String(cycle);
         this.highlightActiveRow(measureNumber - 1);
       }
 
@@ -1345,7 +1184,6 @@
         const snap = this.sequencer.getSnapshot();
         const measure = activeEvent?.measure || snap.measure || this.state.sequence[0] || defaultMeasure();
         const activePulse = activeEvent?.pulseIndex ?? -1;
-        const fillStartBeat = Math.max(1, measure.beats - this.state.fillBeats + 1);
         this.els.rhythmGrid.innerHTML = "";
 
         for (let beat = 1; beat <= measure.beats; beat++) {
@@ -1363,7 +1201,6 @@
             const cell = document.createElement("div");
             cell.className = "pulse";
             if (pulseIndex === activePulse) cell.classList.add("active");
-            if (this.state.fillBeats > 0 && beat >= fillStartBeat) cell.classList.add("fill");
             cell.title = `Tempo ${beat}, pulso ${sub + 1}`;
             cell.setAttribute("aria-label", `Tempo ${beat}, pulso ${sub + 1}`);
             pulses.appendChild(cell);
