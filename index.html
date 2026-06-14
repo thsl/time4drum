@@ -64,12 +64,6 @@
       padding: 8px 10px;
     }
 
-    input[type="range"] {
-      min-height: 32px;
-      padding: 0;
-      accent-color: var(--accent);
-    }
-
     input[type="checkbox"] {
       width: 18px;
       min-height: 18px;
@@ -131,7 +125,7 @@
 
     .control-fields {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: 1fr;
       gap: 12px;
       align-items: end;
     }
@@ -141,32 +135,69 @@
     }
 
     .bpm-display {
+      --bpm-percent: 33%;
+      --handle-x: 90%;
+      --handle-y: 72%;
       display: grid;
       place-items: center;
+      position: relative;
       width: 100%;
       max-width: 260px;
       aspect-ratio: 1;
       border-radius: 50%;
       background:
+        conic-gradient(var(--accent) var(--bpm-percent), var(--line) 0);
+      border: 0;
+      cursor: pointer;
+      transition: background .08s linear, transform .08s linear;
+    }
+
+    .bpm-display::before {
+      content: "";
+      position: absolute;
+      inset: 5px;
+      border-radius: 50%;
+      background:
         radial-gradient(circle at center, var(--flash), transparent 62%),
         var(--panel-soft);
       border: 1px solid var(--line);
-      transition: background .08s linear, transform .08s linear;
+      z-index: 0;
     }
 
     .bpm-display.flash {
       background:
-        radial-gradient(circle at center, rgba(255,255,255,.34), transparent 60%),
-        var(--flash),
-        var(--panel-soft);
+        conic-gradient(var(--accent) var(--bpm-percent), var(--line) 0);
       transform: scale(1.01);
     }
 
-    .bpm-number {
+    .bpm-inner {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      justify-items: center;
+      gap: 2px;
+    }
+
+    .bpm-input {
+      width: 4ch;
+      min-height: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--ink);
+      text-align: center;
       font-size: clamp(4rem, 13vw, 6.8rem);
       font-weight: 850;
       line-height: .9;
       font-variant-numeric: tabular-nums;
+      outline: none;
+      appearance: textfield;
+    }
+
+    .bpm-input::-webkit-outer-spin-button,
+    .bpm-input::-webkit-inner-spin-button {
+      margin: 0;
+      appearance: none;
     }
 
     .bpm-unit {
@@ -175,10 +206,19 @@
       letter-spacing: .08em;
     }
 
-    .bpm-controls {
-      display: grid;
-      gap: 10px;
-      align-items: center;
+    .bpm-handle {
+      position: absolute;
+      left: var(--handle-x);
+      top: var(--handle-y);
+      z-index: 2;
+      width: 34px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--panel);
+      box-shadow: 0 8px 22px rgba(0, 0, 0, .26);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
     }
 
     .transport {
@@ -197,6 +237,11 @@
       border-color: var(--accent);
       color: #fff;
       font-weight: 800;
+    }
+
+    .primary.stopping {
+      background: var(--accent-2);
+      border-color: var(--accent-2);
     }
 
     .danger {
@@ -458,7 +503,6 @@
         padding: 7px 9px;
         font-size: .84rem;
       }
-      input[type="range"] { min-height: 24px; }
       .stack { gap: 12px; }
       .control-grid {
         grid-template-columns: minmax(118px, 38%) minmax(0, 1fr);
@@ -466,10 +510,10 @@
         align-items: center;
       }
       .control-fields {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: 1fr;
         gap: 9px;
       }
-      .bpm-number { font-size: clamp(3.2rem, 15vw, 5rem); }
+      .bpm-input { font-size: clamp(3.2rem, 15vw, 5rem); }
       .bpm-unit {
         font-size: .82rem;
         letter-spacing: .06em;
@@ -503,26 +547,20 @@
       <section class="panel panel-pad stack">
         <div class="control-grid">
           <div id="bpmFlash" class="bpm-display" aria-live="polite">
-            <div>
-              <div id="bpmBig" class="bpm-number">120</div>
+            <div class="bpm-inner">
+              <input id="bpmInput" class="bpm-input" type="number" min="30" max="300" step="1" value="120" aria-label="BPM">
               <div class="bpm-unit">BPM</div>
             </div>
+            <div id="bpmHandle" class="bpm-handle" aria-hidden="true"></div>
           </div>
 
           <div class="control-fields">
-            <label>BPM
-              <input id="bpmInput" type="number" min="30" max="300" step="1" value="120">
-            </label>
             <label>Count-in
               <select id="countInSelect">
                 <option value="0">0</option>
                 <option value="1">1 compasso</option>
                 <option value="2">2 compassos</option>
               </select>
-            </label>
-            <label class="wide">
-              <span class="sr-only">BPM</span>
-              <input id="bpmSlider" type="range" min="30" max="300" step="1" value="120">
             </label>
             <label class="wide">Timbre
               <select id="soundSelect">
@@ -598,12 +636,12 @@
     const BPM_MAX = 300;
 
     const SUBDIVISIONS = {
-      1: { label: "Semínimas" },
-      2: { label: "Colcheias" },
-      3: { label: "Tercinas" },
-      4: { label: "Semicolcheias" },
-      6: { label: "Sextinas" },
-      8: { label: "Fusas" }
+      1: { label: "Semínimas", notation: "♩" },
+      2: { label: "Colcheias", notation: "♪" },
+      3: { label: "Tercinas", notation: "♪3" },
+      4: { label: "Semicolcheias", notation: "♬" },
+      6: { label: "Sextinas", notation: "♬6" },
+      8: { label: "Fusas", notation: "♬8" }
     };
 
     const DEFAULT_SEQUENCE = [1, 2, 3, 4, 6, 8].map(subdivision => ({
@@ -645,13 +683,6 @@
 
       get currentTime() {
         return this.context ? this.context.currentTime : 0;
-      }
-
-      setVolume(value) {
-        this.volume = clamp(Number(value), 0, 1);
-        if (this.master && this.context) {
-          this.master.gain.setTargetAtTime(this.volume, this.context.currentTime, 0.01);
-        }
       }
 
       setTimbre(value) {
@@ -978,10 +1009,9 @@
 
       cacheElements() {
         this.els = {
-          bpmBig: document.getElementById("bpmBig"),
           bpmFlash: document.getElementById("bpmFlash"),
           bpmInput: document.getElementById("bpmInput"),
-          bpmSlider: document.getElementById("bpmSlider"),
+          bpmHandle: document.getElementById("bpmHandle"),
           soundSelect: document.getElementById("soundSelect"),
           countInSelect: document.getElementById("countInSelect"),
           startBtn: document.getElementById("startBtn"),
@@ -1036,7 +1066,7 @@
 
       bindEvents() {
         this.els.bpmInput.addEventListener("input", e => this.setBpm(e.target.value));
-        this.els.bpmSlider.addEventListener("input", e => this.setBpm(e.target.value));
+        this.els.bpmFlash.addEventListener("pointerdown", e => this.startDialDrag(e));
         this.els.soundSelect.addEventListener("change", e => {
           this.state.timbre = e.target.value;
           this.audio.setTimbre(this.state.timbre);
@@ -1059,19 +1089,46 @@
         this.saveState();
       }
 
+      startDialDrag(event) {
+        if (event.target === this.els.bpmInput) return;
+        this.els.bpmFlash.setPointerCapture?.(event.pointerId);
+        const move = e => this.setBpmFromDial(e);
+        const stop = () => {
+          window.removeEventListener("pointermove", move);
+          window.removeEventListener("pointerup", stop);
+        };
+        this.setBpmFromDial(event);
+        window.addEventListener("pointermove", move);
+        window.addEventListener("pointerup", stop, { once: true });
+      }
+
+      setBpmFromDial(event) {
+        const rect = this.els.bpmFlash.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const radians = Math.atan2(event.clientY - cy, event.clientX - cx);
+        const degreesFromTop = (radians * 180 / Math.PI + 450) % 360;
+        const value = BPM_MIN + (degreesFromTop / 360) * (BPM_MAX - BPM_MIN);
+        this.setBpm(Math.round(value));
+      }
+
       async toggleTransport() {
         if (this.sequencer.isRunning) {
-          this.sequencer.pause();
+          this.scheduledEvents = [];
+          this.sequencer.stop();
+          this.renderRhythmGrid();
           this.updateTransportLabel();
           return;
         }
+        this.scheduledEvents = [];
         this.applyStateToEngine();
-        await this.sequencer.start();
+        await this.sequencer.start({ restart: true });
         this.updateTransportLabel();
       }
 
       updateTransportLabel() {
         this.els.startBtn.textContent = this.sequencer.isRunning ? "Stop" : "Start";
+        this.els.startBtn.classList.toggle("stopping", this.sequencer.isRunning);
       }
 
       handleKeys(event) {
@@ -1147,9 +1204,15 @@
       }
 
       renderBpm() {
-        this.els.bpmBig.textContent = this.state.bpm;
         this.els.bpmInput.value = this.state.bpm;
-        this.els.bpmSlider.value = this.state.bpm;
+        const percent = (this.state.bpm - BPM_MIN) / (BPM_MAX - BPM_MIN);
+        const angle = -90 + percent * 360;
+        const radians = angle * Math.PI / 180;
+        const handleX = 50 + Math.cos(radians) * 47;
+        const handleY = 50 + Math.sin(radians) * 47;
+        this.els.bpmFlash.style.setProperty("--bpm-percent", `${percent * 100}%`);
+        this.els.bpmFlash.style.setProperty("--handle-x", `${handleX}%`);
+        this.els.bpmFlash.style.setProperty("--handle-y", `${handleY}%`);
       }
 
       renderControls() {
@@ -1165,7 +1228,8 @@
         const beatNumber = event?.beatNumber || Math.floor((snap.pulseIndex || 0) / measure.subdivision) + 1;
         this.els.measureStatus.textContent = `${measureNumber} / ${this.state.sequence.length}`;
         this.els.beatStatus.textContent = `${beatNumber}${event ? `.${event.subIndex + 1}` : ""}`;
-        this.els.subdivisionStatus.textContent = SUBDIVISIONS[measure.subdivision].label;
+        const subdivisionInfo = SUBDIVISIONS[measure.subdivision];
+        this.els.subdivisionStatus.textContent = `${subdivisionInfo.notation} ${subdivisionInfo.label}`;
         this.els.signatureStatus.textContent = `${measure.beats}/${measure.denominator}`;
         const cycle = (event?.cycleIndex ?? snap.cycleIndex) + 1;
         this.els.cycleStatus.textContent = String(cycle);
@@ -1187,7 +1251,7 @@
             </td>
             <td>
               <select data-field="subdivision" aria-label="Subdivisão do compasso ${index + 1}">
-                ${Object.entries(SUBDIVISIONS).map(([value, info]) => `<option value="${value}" ${Number(value) === measure.subdivision ? "selected" : ""}>${value} · ${info.label}</option>`).join("")}
+                ${Object.entries(SUBDIVISIONS).map(([value, info]) => `<option value="${value}" ${Number(value) === measure.subdivision ? "selected" : ""}>${info.notation} · ${info.label}</option>`).join("")}
               </select>
             </td>
             <td><input type="number" min="1" max="64" step="1" value="${measure.repeats}" data-field="repeats" aria-label="Repetições do compasso ${index + 1}"></td>
