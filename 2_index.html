@@ -18,7 +18,6 @@
       --accent-2: #ff7a54;
       --accent-3: #7aa7ff;
       --warn: #ffc15a;
-      --stop: #ef4444;
       --shadow: 0 18px 45px rgba(0, 0, 0, .28);
       --radius: 8px;
       --flash: rgba(53, 202, 164, .18);
@@ -200,16 +199,6 @@
       font-weight: 800;
     }
 
-    .primary.is-stop {
-      background: var(--stop);
-      border-color: var(--stop);
-      color: #fff;
-    }
-
-    .primary.is-stop:hover {
-      border-color: var(--stop);
-    }
-
     .danger {
       border-color: color-mix(in srgb, var(--accent-2), var(--line) 25%);
       color: var(--accent-2);
@@ -253,37 +242,6 @@
       font-size: .95rem;
       font-variant-numeric: tabular-nums;
       word-break: break-word;
-    }
-
-    .subdivision-display {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .subdiv-icon {
-      display: block;
-      width: 38px;
-      height: 22px;
-      flex: none;
-      color: var(--accent);
-    }
-
-    .subdiv-icon-wrap.small .subdiv-icon {
-      width: 42px;
-      height: 18px;
-      color: var(--muted);
-    }
-
-    .subdiv-cell {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .subdiv-cell select {
-      flex: 1;
-      min-width: 130px;
     }
 
     .progress-wrap {
@@ -528,10 +486,6 @@
       .status { padding: 7px; }
       .status span { font-size: .58rem; }
       .status strong { font-size: .78rem; }
-      .subdivision-display { flex-direction: column; align-items: flex-start; gap: 3px; }
-      .subdiv-icon { width: 32px; height: 16px; }
-      .subdiv-cell { gap: 5px; }
-      .subdiv-icon-wrap.small .subdiv-icon { width: 30px; height: 14px; }
     }
 
     @media (max-width: 370px) {
@@ -599,13 +553,7 @@
           <div class="status"><span>Tempo</span><strong id="beatStatus">1</strong></div>
           <div class="status"><span>Ciclo</span><strong id="cycleStatus">1</strong></div>
           <div class="status"><span>Compasso</span><strong id="measureStatus">1 / 5</strong></div>
-          <div class="status">
-            <span>Subdivisão</span>
-            <div class="subdivision-display">
-              <div id="subdivisionIcon" class="subdiv-icon-wrap" aria-hidden="true"></div>
-              <strong id="subdivisionStatus">Semínimas</strong>
-            </div>
-          </div>
+          <div class="status"><span>Subdivisão</span><strong id="subdivisionStatus">Semínimas</strong></div>
         </div>
       </section>
 
@@ -657,49 +605,6 @@
       6: { label: "Sextinas" },
       8: { label: "Fusas" }
     };
-
-    // Pequenos símbolos musicais (Unicode) usados como atalho visual nos seletores.
-    const SUBDIVISION_SYMBOLS = {
-      1: "♩",
-      2: "♫",
-      3: "♪³",
-      4: "♬",
-      6: "♬⁶",
-      8: "♬⁸"
-    };
-
-    // Gera um ícone SVG com a notação rítmica (feixes/colchetes de tercina) para
-    // representar visualmente quantas notas cabem em cada tempo.
-    function subdivisionIconSVG(n) {
-      const subdivision = SUBDIVISIONS[n] ? n : 1;
-      const width = 80;
-      const height = 48;
-      const topY = 8;
-      const baseY = 34;
-      const left = 12;
-      const right = 68;
-      const positions = [];
-      for (let i = 0; i < subdivision; i++) {
-        positions.push(subdivision === 1 ? (left + right) / 2 : left + (right - left) * i / (subdivision - 1));
-      }
-      const parts = [];
-      positions.forEach(x => {
-        parts.push(`<line x1="${x.toFixed(1)}" y1="${topY}" x2="${x.toFixed(1)}" y2="${baseY}" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>`);
-      });
-      const beamCount = subdivision === 1 ? 0 : (subdivision === 4 || subdivision === 6) ? 2 : subdivision === 8 ? 3 : 1;
-      for (let b = 0; b < beamCount; b++) {
-        const y = topY + b * 4.5;
-        parts.push(`<line x1="${positions[0].toFixed(1)}" y1="${y}" x2="${positions[positions.length - 1].toFixed(1)}" y2="${y}" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>`);
-      }
-      if (subdivision === 3 || subdivision === 6) {
-        const midX = (positions[0] + positions[positions.length - 1]) / 2;
-        parts.push(`<text x="${midX.toFixed(1)}" y="${topY - 1}" text-anchor="middle" font-size="13" font-weight="800" fill="currentColor">${subdivision}</text>`);
-      }
-      positions.forEach(x => {
-        parts.push(`<ellipse cx="${x.toFixed(1)}" cy="${baseY}" rx="6" ry="4.3" fill="currentColor" transform="rotate(-18 ${x.toFixed(1)} ${baseY})"/>`);
-      });
-      return `<svg viewBox="0 0 ${width} ${height}" class="subdiv-icon" role="img" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">${parts.join("")}</svg>`;
-    }
 
     const DEFAULT_SEQUENCE = [1, 2, 3, 4, 6, 8].map(subdivision => ({
       beats: 4,
@@ -1083,7 +988,6 @@
           measureStatus: document.getElementById("measureStatus"),
           beatStatus: document.getElementById("beatStatus"),
           subdivisionStatus: document.getElementById("subdivisionStatus"),
-          subdivisionIcon: document.getElementById("subdivisionIcon"),
           cycleStatus: document.getElementById("cycleStatus"),
           signatureStatus: document.getElementById("signatureStatus"),
           cycleProgress: document.getElementById("cycleProgress"),
@@ -1157,19 +1061,17 @@
 
       async toggleTransport() {
         if (this.sequencer.isRunning) {
-          // Stop sempre reinicia: para o áudio e devolve o cursor ao início da sequência.
-          this.sequencer.stop({ reset: true });
+          this.sequencer.pause();
+          this.updateTransportLabel();
           return;
         }
         this.applyStateToEngine();
-        await this.sequencer.start({ restart: true });
+        await this.sequencer.start();
         this.updateTransportLabel();
       }
 
       updateTransportLabel() {
-        const running = this.sequencer.isRunning;
-        this.els.startBtn.textContent = running ? "Stop" : "Start";
-        this.els.startBtn.classList.toggle("is-stop", running);
+        this.els.startBtn.textContent = this.sequencer.isRunning ? "Stop" : "Start";
       }
 
       handleKeys(event) {
@@ -1188,14 +1090,7 @@
       }
 
       handleStopped() {
-        // Limpa a fila de eventos visuais e devolve toda a interface ao estado inicial.
-        this.scheduledEvents = [];
-        this.lastVisualPulseKey = "";
-        this.flashUntil = 0;
-        this.countOverlayUntil = 0;
         this.renderStatus();
-        this.renderRhythmGrid();
-        this.updateProgress();
         this.updateTransportLabel();
       }
 
@@ -1271,7 +1166,6 @@
         this.els.measureStatus.textContent = `${measureNumber} / ${this.state.sequence.length}`;
         this.els.beatStatus.textContent = `${beatNumber}${event ? `.${event.subIndex + 1}` : ""}`;
         this.els.subdivisionStatus.textContent = SUBDIVISIONS[measure.subdivision].label;
-        this.els.subdivisionIcon.innerHTML = subdivisionIconSVG(measure.subdivision);
         this.els.signatureStatus.textContent = `${measure.beats}/${measure.denominator}`;
         const cycle = (event?.cycleIndex ?? snap.cycleIndex) + 1;
         this.els.cycleStatus.textContent = String(cycle);
@@ -1292,12 +1186,9 @@
               </select>
             </td>
             <td>
-              <div class="subdiv-cell">
-                <select data-field="subdivision" aria-label="Subdivisão do compasso ${index + 1}">
-                  ${Object.entries(SUBDIVISIONS).map(([value, info]) => `<option value="${value}" ${Number(value) === measure.subdivision ? "selected" : ""}>${value} · ${info.label} ${SUBDIVISION_SYMBOLS[value] || ""}</option>`).join("")}
-                </select>
-                <div class="subdiv-icon-wrap small" data-role="subdivIcon" aria-hidden="true">${subdivisionIconSVG(measure.subdivision)}</div>
-              </div>
+              <select data-field="subdivision" aria-label="Subdivisão do compasso ${index + 1}">
+                ${Object.entries(SUBDIVISIONS).map(([value, info]) => `<option value="${value}" ${Number(value) === measure.subdivision ? "selected" : ""}>${value} · ${info.label}</option>`).join("")}
+              </select>
             </td>
             <td><input type="number" min="1" max="64" step="1" value="${measure.repeats}" data-field="repeats" aria-label="Repetições do compasso ${index + 1}"></td>
             <td>
@@ -1312,12 +1203,7 @@
           tr.querySelectorAll("[data-field]").forEach(input => {
             input.addEventListener("change", e => {
               const field = e.target.dataset.field;
-              const value = parseInt(e.target.value, 10);
-              if (field === "subdivision") {
-                const iconWrap = tr.querySelector('[data-role="subdivIcon"]');
-                if (iconWrap) iconWrap.innerHTML = subdivisionIconSVG(value);
-              }
-              this.updateMeasure(index, { [field]: value });
+              this.updateMeasure(index, { [field]: parseInt(e.target.value, 10) });
             });
           });
           tr.querySelectorAll("[data-action]").forEach(button => {
